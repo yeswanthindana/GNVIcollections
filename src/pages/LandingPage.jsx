@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Menu, X, Search, ShoppingBag, User, Instagram,
+    Instagram,
     Facebook, Twitter, ChevronRight, Star, Heart,
     Sparkles, Eye, ShieldCheck, Globe, ArrowRight, Percent, Award, Phone, Mail, MapPin, Truck, Headphones, RotateCcw, HeartHandshake, Quote
 } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 
 export default function LandingPage() {
     const [products, setProducts] = useState([]);
     const [featuredIndex, setFeaturedIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     const [currency, setCurrency] = useState('₹');
     const [storeInfo, setStoreInfo] = useState({
         storeName: 'GNVI Collections',
@@ -21,6 +25,7 @@ export default function LandingPage() {
         address: 'Visakhapatnam, Andhra Pradesh, India'
     });
 
+    const { cartCount, setIsCartOpen, addToCart } = useCart();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -100,36 +105,15 @@ export default function LandingPage() {
             </div>
 
             {/* --- NAVIGATION --- */}
-            <nav className="sticky top-0 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-8">
-                        <button onClick={() => setIsMenuOpen(true)} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-all">
-                            <Menu size={22} />
-                        </button>
-                        <Link to="/" className="flex items-center gap-3">
-                            <img src="/logo.png" alt={`${storeInfo.storeName} Logo`} className="w-9 h-9 object-contain" />
-                            <h1 className="text-xl font-bold tracking-tight">{storeInfo.storeName.split(' ')[0]}</h1>
-                        </Link>
-                    </div>
-
-                    <div className="hidden lg:flex gap-10 font-bold text-[10px] uppercase tracking-widest text-slate-500">
-                        <Link to="/collections" className="hover:text-slate-900 transition-colors">The Catalog</Link>
-                        <a href="#purpose" className="hover:text-slate-900 transition-colors">Our Values</a>
-                        <a href="#founder" className="hover:text-slate-900 transition-colors">Founder's Note</a>
-                        <a href="#contact" className="hover:text-slate-900 transition-colors">Contact</a>
-                    </div>
-
-                    <div className="flex items-center gap-5">
-                        <div className="relative p-2 hover:bg-slate-50 rounded-full cursor-pointer transition-all">
-                            <ShoppingBag size={20} />
-                            <span className="absolute top-1 right-1 bg-slate-900 text-white text-[7px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">0</span>
-                        </div>
-                        <button onClick={() => navigate('/login')} className="p-2 hover:bg-slate-50 rounded-full transition-all">
-                            <User size={20} />
-                        </button>
-                    </div>
+            {/* --- NAVIGATION --- */}
+            <Navbar storeName={storeInfo.storeName}>
+                <div className="hidden lg:flex gap-10 font-bold text-[10px] uppercase tracking-widest text-slate-500">
+                    <Link to="/collections" className="hover:text-slate-900 transition-colors">The Catalog</Link>
+                    <a href="#purpose" className="hover:text-slate-900 transition-colors">Our Values</a>
+                    <a href="#founder" className="hover:text-slate-900 transition-colors">Founder's Note</a>
+                    <a href="#contact" className="hover:text-slate-900 transition-colors">Contact</a>
                 </div>
-            </nav>
+            </Navbar>
 
             {/* --- HERO --- */}
             <section className="relative py-20 lg:py-40 overflow-hidden bg-white">
@@ -316,47 +300,11 @@ export default function LandingPage() {
             </section>
 
             {/* --- FOOTER --- */}
-            <footer className="py-12 border-t border-slate-100 text-center">
-                <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8">
-                    <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors">Feedback</a>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-bold tracking-[0.2em] uppercase">© 2026 {storeInfo.storeName.toUpperCase()}. Crafted with Love.</p>
-                </div>
-            </footer>
+            {/* --- FOOTER --- */}
+            <Footer storeName={storeInfo.storeName} />
 
             {/* --- MENU DRAWER --- */}
-            <AnimatePresence>
-                {isMenuOpen && (
-                    <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" />
-                        <motion.div
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed inset-y-0 left-0 w-[300px] bg-white z-[60] shadow-2xl flex flex-col p-10"
-                        >
-                            <div className="flex justify-between items-center mb-16">
-                                <img src="/logo.png" className="w-8 h-8" />
-                                <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={24} /></button>
-                            </div>
-                            <nav className="flex flex-col gap-8 text-xl font-bold tracking-tight">
-                                <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
-                                <Link to="/collections" onClick={() => setIsMenuOpen(false)}>The Catalog</Link>
-                                <a href="#founder" onClick={() => setIsMenuOpen(false)}>Founder's Note</a>
-                                <a href="#purpose" onClick={() => setIsMenuOpen(false)}>Our Values</a>
-                                <a href="#contact" onClick={() => setIsMenuOpen(false)}>Contact</a>
-                                <Link to="/login" onClick={() => setIsMenuOpen(false)} className="mt-8 pt-8 border-t border-slate-100 flex items-center gap-3 text-slate-400">
-                                    <User size={18} /> <span className="text-sm">Admin console</span>
-                                </Link>
-                            </nav>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+
         </div>
     );
 }

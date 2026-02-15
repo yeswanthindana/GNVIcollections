@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Menu, X, Search, ShoppingBag, User, Instagram,
+    Search, Instagram,
     Facebook, Twitter, ChevronDown, Filter, Sliders, ChevronRight,
     Sparkles, Star, ArrowRight, Eye, Percent
 } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 
 export default function Collections() {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     const [currency, setCurrency] = useState('₹');
     const [storeName, setStoreName] = useState('GNVI Collections');
 
@@ -22,6 +25,7 @@ export default function Collections() {
     const [priceRange, setPriceRange] = useState(2000000);
     const [sortBy, setSortBy] = useState('Newest');
 
+    const { cartCount, setIsCartOpen, addToCart } = useCart();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -90,40 +94,19 @@ export default function Collections() {
     return (
         <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-slate-900 selection:text-white">
             {/* --- NAVIGATION --- */}
-            <nav className="fixed top-0 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-8">
-                        <button onClick={() => setIsMenuOpen(true)} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-all">
-                            <Menu size={22} />
-                        </button>
-                        <Link to="/" className="flex items-center gap-3">
-                            <img src="/logo.png" alt={`${storeName} Logo`} className="w-9 h-9 object-contain" />
-                            <h1 className="text-xl font-bold tracking-tight">{storeName.split(' ')[0]}</h1>
-                        </Link>
-                    </div>
-
-                    <div className="flex-1 max-w-sm mx-12 relative group hidden md:block">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 transition-colors" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Find a masterpiece..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none ring-1 ring-slate-100 focus:ring-slate-900/10 transition-all font-sans"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-5">
-                        <div className="relative p-2 hover:bg-slate-50 rounded-full cursor-pointer transition-all">
-                            <ShoppingBag size={20} />
-                            <span className="absolute top-1 right-1 bg-slate-900 text-white text-[7px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">0</span>
-                        </div>
-                        <button onClick={() => navigate('/login')} className="p-2 hover:bg-slate-50 rounded-full transition-all">
-                            <User size={20} />
-                        </button>
-                    </div>
+            {/* --- NAVIGATION --- */}
+            <Navbar storeName={storeName} isFixed={true}>
+                <div className="flex-1 max-w-sm relative group hidden md:block">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-900 transition-colors" size={16} />
+                    <input
+                        type="text"
+                        placeholder="Find a masterpiece..."
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none ring-1 ring-slate-100 focus:ring-slate-900/10 transition-all font-sans"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
-            </nav>
+            </Navbar>
 
             <header className="pt-40 pb-16 bg-slate-50 border-b border-slate-100">
                 <div className="max-w-7xl mx-auto px-6">
@@ -202,7 +185,10 @@ export default function Collections() {
                                                 <div className="absolute top-6 left-6 bg-slate-900 text-white text-[9px] font-bold px-3 py-1.5 rounded-full">{p.discount_percent.toFixed(0)}% OFF</div>
                                             )}
                                             <div className="absolute inset-x-6 bottom-6 translate-y-20 group-hover:translate-y-0 transition-all duration-500">
-                                                <button className="w-full bg-slate-900 text-white py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                                                    className="w-full bg-slate-900 text-white py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-slate-800"
+                                                >
                                                     Quick Add
                                                 </button>
                                             </div>
@@ -228,36 +214,7 @@ export default function Collections() {
                     </div>
                 </div>
             </main>
-
-            {/* --- NEW SHORT MENU DRAWER --- */}
-            <AnimatePresence>
-                {isMenuOpen && (
-                    <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" />
-                        <motion.div
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed inset-y-0 left-0 w-[300px] bg-white z-[60] shadow-2xl flex flex-col p-10"
-                        >
-                            <div className="flex justify-between items-center mb-16">
-                                <img src="/logo.png" className="w-8 h-8" />
-                                <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={24} /></button>
-                            </div>
-                            <nav className="flex flex-col gap-8 text-xl font-bold tracking-tight">
-                                <Link to="/" onClick={() => setIsMenuOpen(false)} className="hover:translate-x-2 transition-transform">Home</Link>
-                                <Link to="/collections" onClick={() => setIsMenuOpen(false)} className="hover:translate-x-2 transition-transform">The Catalog</Link>
-                                <a href="/#about" onClick={() => setIsMenuOpen(false)} className="hover:translate-x-2 transition-transform">Our Heritage</a>
-                                <a href="/#contact" onClick={() => setIsMenuOpen(false)} className="hover:translate-x-2 transition-transform">Concierge</a>
-                                <Link to="/login" onClick={() => setIsMenuOpen(false)} className="mt-8 pt-8 border-t border-slate-100 flex items-center gap-3 text-slate-400 group hover:text-slate-900">
-                                    <User size={18} /> <span className="text-sm">Admin Console</span>
-                                </Link>
-                            </nav>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+            <Footer storeName={storeName} />
         </div>
     );
 }

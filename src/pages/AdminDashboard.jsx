@@ -4,7 +4,7 @@ import {
     LogOut, Trash2, Edit, CheckCircle2, XCircle,
     FileText, TrendingUp, AlertCircle, Upload, Search,
     MoreVertical, Filter, ChevronRight, Layers, FileDigit, Image as ImageIcon,
-    Sparkles, Eye, ShieldCheck, Globe, X, ShoppingCart, Percent, Store, Mail, Phone, MapPin, History, MessageSquare, Clock, User as UserIcon,
+    Sparkles, Eye, ShieldCheck, Globe, X, ShoppingCart, ShoppingBag, Percent, Store, Mail, Phone, MapPin, History, MessageSquare, Clock, User as UserIcon,
     ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +18,7 @@ export default function AdminDashboard() {
     const [categories, setCategories] = useState([]);
     const [history, setHistory] = useState([]);
     const [requests, setRequests] = useState([]);
+    const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showProductModal, setShowProductModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -53,6 +54,30 @@ export default function AdminDashboard() {
     const [productImageFile, setProductImageFile] = useState(null);
 
     useEffect(() => {
+        const channel = supabase
+            .channel('dashboard_realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    // New order arrived! Refresh to get items.
+                    fetchData();
+                    toast.success('New Order Received! 🔔');
+                } else if (payload.eventType === 'UPDATE') {
+                    // Realtime status update
+                    setOrders((prev) => prev.map((order) =>
+                        order.id === payload.new.id ? { ...order, ...payload.new } : order
+                    ));
+                } else if (payload.eventType === 'DELETE') {
+                    setOrders((prev) => prev.filter((order) => order.id !== payload.old.id));
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    useEffect(() => {
         fetchData();
     }, []);
 
@@ -64,11 +89,12 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             // Parallel fetching
-            const [catRes, prodRes, histRes, reqRes] = await Promise.all([
+            const [catRes, prodRes, histRes, reqRes, ordRes] = await Promise.all([
                 supabase.from('categories').select('*'),
                 supabase.from('products').select('*, categories:category_id(name)').order('created_at', { ascending: false }),
                 supabase.from('product_history').select('*').order('changed_at', { ascending: false }).limit(20),
-                supabase.from('customer_requests').select('*').order('created_at', { ascending: false })
+                supabase.from('customer_requests').select('*').order('created_at', { ascending: false }),
+                supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false })
             ]);
 
             if (catRes.data) setCategories(catRes.data);
@@ -86,6 +112,7 @@ export default function AdminDashboard() {
             if (prodData) setProducts(prodData);
             if (histRes.data) setHistory(histRes.data);
             if (reqRes.data) setRequests(reqRes.data);
+            if (ordRes.data) setOrders(ordRes.data);
 
         } catch (err) {
             console.error('Error fetching admin data:', err);
@@ -182,6 +209,47 @@ export default function AdminDashboard() {
         });
     };
 
+    const handleUpdateOrderStatus = async (orderId, newStatus) => {
+        let updateData = { status: newStatus };
+
+        if (newStatus === 'Rejected') {
+            const reason = window.prompt("Please enter reason for rejection:");
+            if (!reason) return;
+            updateData.rejection_reason = reason;
+        }
+
+        if (newStatus === 'Shipped') {
+            const courier = window.prompt("Enter Courier Service Name:");
+            if (!courier) return;
+            const tracking = window.prompt("Enter Tracking ID:");
+            if (!tracking) return;
+            updateData.courier_name = courier;
+            updateData.tracking_id = tracking;
+        }
+
+        // Optimistic UI Update: React instantly!
+        setOrders(prevOrders => prevOrders.map(order =>
+            order.id === orderId ? { ...order, ...updateData } : order
+        ));
+
+        const promise = async () => {
+            const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
+            if (error) {
+                console.error('Update Order Error:', error);
+                fetchData(); // Sync: revert optimistic update
+                throw new Error(error.message); // throw specifically for toast
+            }
+            // Success! Realtime listener will handle the rest.
+        };
+
+        toast.promise(promise(), {
+            loading: 'Syncing...',
+            success: `Order marked as ${newStatus}`,
+            error: (err) => `Sync Failed: ${err.message}`
+        });
+    };
+
+
     const stats = {
         total: products.length,
         value: products.reduce((acc, p) => acc + Number(p.current_price), 0),
@@ -205,6 +273,7 @@ export default function AdminDashboard() {
 
                 <nav className="space-y-2 grow">
                     <NavBtn active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<Package size={18} />} label="Inventory" />
+                    <NavBtn active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} icon={<ShoppingBag size={18} />} label="Orders" count={orders.filter(o => o.status === 'Processing').length} />
                     <NavBtn active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} icon={<MessageSquare size={18} />} label="Customer Inquiries" count={requests.filter(r => r.status === 'Pending').length} />
                     <NavBtn active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={18} />} label="Activity Log" />
                     <NavBtn active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<TrendingUp size={18} />} label="Analytics" />
@@ -306,6 +375,133 @@ export default function AdminDashboard() {
                         </motion.div>
                     )}
 
+                    {activeTab === 'orders' && (
+                        <motion.div key="orders" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 max-w-5xl">
+                            {orders.length === 0 ? (
+                                <div className="py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100 text-slate-300 font-bold uppercase text-[10px] tracking-[0.3em]">No Orders Yet</div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {orders.map(order => (
+                                        <div key={order.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8 pb-8 border-b border-slate-50">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full 
+                                                            ${order.status === 'Processing' ? 'bg-amber-50 text-amber-600' :
+                                                                order.status === 'Rejected' ? 'bg-red-50 text-red-600' :
+                                                                    'bg-green-50 text-green-600'}`}>{order.status}</span>
+                                                        <span className="text-slate-300">/</span>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{new Date(order.created_at).toLocaleString()}</span>
+                                                    </div>
+                                                    <h3 className="text-xl font-black text-slate-900">{order.customer_name}</h3>
+                                                    <div className="flex flex-col gap-1 text-xs font-bold text-slate-400">
+                                                        <span className="flex items-center gap-2"><Mail size={14} /> {order.customer_email}</span>
+                                                        <span className="flex items-center gap-2"><Phone size={14} /> {order.customer_phone || 'N/A'}</span>
+                                                        <span className="flex items-center gap-2"><MapPin size={14} /> {order.customer_address}</span>
+                                                    </div>
+
+                                                    {order.status === 'Rejected' && (
+                                                        <div className="mt-2 p-3 bg-red-50 rounded-xl text-xs font-bold text-red-600 border border-red-100">
+                                                            Reason: {order.rejection_reason}
+                                                        </div>
+                                                    )}
+
+                                                    {order.status === 'Shipped' && (
+                                                        <div className="mt-2 p-3 bg-blue-50 rounded-xl text-xs font-bold text-blue-600 border border-blue-100">
+                                                            Courier: {order.courier_name} | Tracking: {order.tracking_id}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Valuation</p>
+                                                    <p className="text-3xl font-black text-slate-900">{storeSettings.currency}{order.total_amount.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Order Manifest</h4>
+                                                <div className="grid gap-4">
+                                                    {order.order_items?.map(item => (
+                                                        <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-black text-slate-300 border border-slate-100 text-xs">x{item.quantity}</div>
+                                                                <div>
+                                                                    <p className="font-bold text-sm text-slate-900">{item.product_name}</p>
+                                                                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">SKU: {item.product_id?.slice(0, 8) || 'N/A'}</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className="font-bold text-sm text-slate-900">{storeSettings.currency}{item.price_at_time.toLocaleString()}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap justify-end gap-3 mt-8 pt-6 border-t border-slate-50">
+                                                <a href={`mailto:${order.customer_email}?subject=Regarding Order #${order.id.slice(0, 8)}`} className="px-6 py-3 bg-slate-100 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors">Contact Client</a>
+
+                                                <div className="w-full mt-4">
+                                                    {order.status === 'Processing' ? (
+                                                        <div className="flex justify-end gap-3">
+                                                            <button
+                                                                onClick={() => handleUpdateOrderStatus(order.id, 'Rejected')}
+                                                                className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition-colors border border-red-100"
+                                                            >
+                                                                Reject Order
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleUpdateOrderStatus(order.id, 'Confirmed')}
+                                                                className="px-6 py-3 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-slate-800 transition-colors shadow-lg hover:shadow-slate-900/20"
+                                                            >
+                                                                Confirm Order
+                                                            </button>
+                                                        </div>
+                                                    ) : order.status === 'Rejected' ? (
+                                                        <div className="text-right text-xs font-bold text-red-400 uppercase tracking-widest">
+                                                            Order Closed
+                                                        </div>
+                                                    ) : (
+                                                        <div className="bg-slate-50 p-4 rounded-2xl flex flex-wrap items-center gap-2 justify-between">
+                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Fulfillment Pipeline</span>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {['Confirmed', 'Packing', 'Ready for Shipping', 'Shipped'].map((step, idx) => {
+                                                                    // Determine if this step is "active", "completed", or "upcoming"
+                                                                    const steps = ['Confirmed', 'Packing', 'Ready for Shipping', 'Shipped', 'Delivered'];
+                                                                    const currentIdx = steps.indexOf(order.status);
+                                                                    const stepIdx = steps.indexOf(step);
+
+                                                                    const isActive = order.status === step;
+                                                                    const isPast = currentIdx > stepIdx;
+
+                                                                    return (
+                                                                        <button
+                                                                            key={step}
+                                                                            onClick={() => handleUpdateOrderStatus(order.id, step)}
+                                                                            disabled={isPast || isActive}
+                                                                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center gap-2
+                                                                                ${isActive
+                                                                                    ? 'bg-slate-900 text-white border-slate-900 shadow-md transform scale-105'
+                                                                                    : isPast
+                                                                                        ? 'bg-green-50 text-green-600 border-green-100 opacity-80 cursor-default'
+                                                                                        : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400 hover:text-slate-600'
+                                                                                }`}
+                                                                        >
+                                                                            {isPast && <CheckCircle2 size={12} />}
+                                                                            {step}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
                     {activeTab === 'requests' && (
                         <motion.div key="requests" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 max-w-5xl">
                             {requests.length === 0 ? (
@@ -351,8 +547,9 @@ export default function AdminDashboard() {
                                 <div className="relative border-l-4 border-slate-900/5 ml-4 space-y-12">
                                     {history.map(item => (
                                         <div key={item.id} className="relative pl-10">
-                                            <div className="absolute -left-[14px] top-0 w-6 h-6 bg-slate-900 rounded-full flex items-center justify-center text-white ring-8 ring-[#F8FAFC]">
-                                                <Clock size={12} />
+                                            <div className={`absolute -left-[14px] top-0 w-6 h-6 rounded-full flex items-center justify-center text-white ring-8 ring-[#F8FAFC] 
+                                                ${item.change_type?.includes('Order') ? 'bg-indigo-600' : 'bg-slate-900'}`}>
+                                                {item.change_type?.includes('Order') ? <ShoppingBag size={12} /> : <Clock size={12} />}
                                             </div>
                                             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
                                                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">

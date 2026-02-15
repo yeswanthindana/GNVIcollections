@@ -18,7 +18,7 @@ export default function Login() {
         if (password === '1995' || password === 'GNVI1995') {
             localStorage.setItem('gnvi_owner_session', 'active');
             toast.success('Owner Verified: Welcome back, Sowjanya');
-            window.location.href = '/admin';
+            window.location.reload(); // Force App to pick up new localStorage
             return;
         }
 
