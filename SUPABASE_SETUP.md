@@ -35,6 +35,8 @@ create table products (
   available boolean default true,
   category_id uuid references categories(id),
   stock_status text default 'In Stock' check (stock_status in ('In Stock', 'Out of Stock')),
+  rating numeric default 5.0 check (rating >= 0 and rating <= 5),
+  featured boolean default false,
   created_at timestamptz default now()
 );
 

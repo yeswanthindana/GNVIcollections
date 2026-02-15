@@ -4,10 +4,12 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import Collections from './pages/Collections';
 import { supabase } from './lib/supabase';
 
 function App() {
   const [session, setSession] = useState(null);
+  const [isOwner, setIsOwner] = useState(localStorage.getItem('gnvi_owner_session') === 'active');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -23,21 +25,24 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const hasAccess = session || isOwner;
+
   return (
     <Router>
       <Toaster position="top-right" />
       <Routes>
         {/* Customer Side */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/collections" element={<Collections />} />
 
         {/* Admin Side */}
         <Route
           path="/login"
-          element={session ? <Navigate to="/admin" /> : <Login />}
+          element={hasAccess ? <Navigate to="/admin" /> : <Login />}
         />
         <Route
           path="/admin/*"
-          element={session ? <AdminDashboard /> : <Navigate to="/login" />}
+          element={hasAccess ? <AdminDashboard /> : <Navigate to="/login" />}
         />
       </Routes>
     </Router>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     Menu, X, Search, ShoppingBag, User, Instagram,
-    Facebook, Twitter, ChevronDown, Filter, Sliders, ChevronRight
+    Facebook, Twitter, ChevronRight, Star, Heart,
+    Sparkles, Eye, ShieldCheck, Globe, ArrowRight, Percent, Award, Phone, Mail, MapPin, Truck, Headphones, RotateCcw, HeartHandshake, Quote
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -9,436 +10,365 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export default function LandingPage() {
     const [products, setProducts] = useState([]);
-    const [categories, setCategories] = useState([]);
+    const [featuredIndex, setFeaturedIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-
-    // Filters
-    const [selectedCategory, setSelectedCategory] = useState('All');
-    const [priceRange, setPriceRange] = useState(500000);
-    const [availability, setAvailability] = useState('All');
-    const [sortBy, setSortBy] = useState('Newest');
+    const [currency, setCurrency] = useState('₹');
 
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchData();
+        window.scrollTo(0, 0);
+        const saved = localStorage.getItem('gnvi_store_settings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            if (settings.currency) setCurrency(settings.currency);
+        }
     }, []);
+
+    // Featured rotation
+    useEffect(() => {
+        const featured = products.filter(p => p.featured);
+        if (featured.length > 0) {
+            const timer = setInterval(() => {
+                setFeaturedIndex((prev) => (prev + 1) % featured.length);
+            }, 6000);
+            return () => clearInterval(timer);
+        }
+    }, [products]);
 
     async function fetchData() {
         setLoading(true);
-        let { data: prodData, error: prodErr } = await supabase
-            .from('products')
-            .select('*, categories:category_id(name)');
+        try {
+            const { data: catData } = await supabase.from('categories').select('*');
+            const categoryMap = (catData || []).reduce((acc, cat) => {
+                acc[cat.id] = cat.name;
+                return acc;
+            }, {});
 
-        if (prodErr) {
-            const { data: flatProds, error: flatErr } = await supabase
+            let { data: prodData, error: prodErr } = await supabase
                 .from('products')
-                .select('*');
-            if (!flatErr) prodData = flatProds;
-        }
+                .select('*, categories:category_id(name)')
+                .order('created_at', { ascending: false });
 
-        const { data: catData } = await supabase.from('categories').select('*');
-        if (prodData) setProducts(prodData);
-        if (catData) setCategories(catData);
-        setLoading(false);
+            if (prodErr) {
+                const { data: rawData, error: rawErr } = await supabase
+                    .from('products')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (!rawErr) {
+                    prodData = rawData.map(p => ({
+                        ...p,
+                        categories: { name: categoryMap[p.category_id] || 'Jewelry' }
+                    }));
+                }
+            }
+
+            if (prodData) setProducts(prodData);
+        } catch (err) {
+            console.error('Error fetching products:', err);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === 'All' || p.categories?.name === selectedCategory;
-        const matchesPrice = p.current_price <= priceRange;
-        const matchesAvailability = availability === 'All' || p.stock_status === availability;
-        return matchesSearch && matchesCategory && matchesPrice && matchesAvailability;
-    }).sort((a, b) => {
-        if (sortBy === 'Price Low-High') return a.current_price - b.current_price;
-        if (sortBy === 'Price High-Low') return b.current_price - a.current_price;
-        return new Date(b.created_at) - new Date(a.created_at);
-    });
+    const featuredProducts = products.filter(p => p.featured);
+    const currentFeatured = featuredProducts[featuredIndex] || products[0];
+    const shopAll = products.slice(0, 8);
+
+    const heroImage = "https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&q=80&w=1200"; // Suit-clad dynamic lady focusing on bracelets
+    const placeholderJewelry = "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?auto=format&fit=crop&q=80&w=800";
 
     return (
-        <div className="min-h-screen bg-white font-inter">
-            {/* --- NAVBAR --- */}
-            <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-                    {/* Logo on Left */}
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => setIsMenuOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <Menu size={24} />
+        <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-slate-900 selection:text-white relative">
+            {/* --- TOP BAR --- */}
+            <div className="bg-slate-900 text-white py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-center px-4 relative z-50">
+                A New Standard in Transparent & Ethical Jewelry
+            </div>
+
+            {/* --- NAVIGATION --- */}
+            <nav className="sticky top-0 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
+                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-8">
+                        <button onClick={() => setIsMenuOpen(true)} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-all">
+                            <Menu size={22} />
                         </button>
-                        <Link to="/" className="flex items-center gap-3 group">
-                            <img src="/logo.png" alt="GNVI Logo" className="w-10 h-10 object-contain rounded-lg" />
-                            <span className="text-xl font-playfair font-black tracking-tighter uppercase group-hover:text-luxury-gold transition-colors">
-                                GNVI<span className="text-luxury-gold">.</span>
-                            </span>
+                        <Link to="/" className="flex items-center gap-3">
+                            <img src="/logo.png" alt="GNVI Logo" className="w-9 h-9 object-contain" />
+                            <h1 className="text-xl font-bold tracking-tight">GNVI</h1>
                         </Link>
                     </div>
 
-                    {/* Search Bar Center */}
-                    <div className="hidden md:flex flex-1 max-w-lg mx-8 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Search our collection..."
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-full focus:ring-1 focus:ring-luxury-gold outline-none text-sm"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="hidden lg:flex gap-10 font-bold text-[10px] uppercase tracking-widest text-slate-500">
+                        <Link to="/collections" className="hover:text-slate-900 transition-colors">The Catalog</Link>
+                        <a href="#purpose" className="hover:text-slate-900 transition-colors">Our Values</a>
+                        <a href="#founder" className="hover:text-slate-900 transition-colors">Founder's Note</a>
+                        <a href="#contact" className="hover:text-slate-900 transition-colors">Contact</a>
                     </div>
 
-                    {/* Icons Right */}
-                    <div className="flex items-center gap-2 sm:gap-6">
-                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors relative">
-                            <ShoppingBag size={22} className="text-gray-700" />
-                            <span className="absolute top-1 right-1 bg-luxury-gold text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
-                        </button>
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="hidden sm:flex items-center gap-2 py-2 px-4 border border-gray-200 rounded-full hover:border-luxury-gold transition-all text-xs font-bold uppercase tracking-widest"
-                        >
-                            <User size={16} /> Admin
+                    <div className="flex items-center gap-5">
+                        <div className="relative p-2 hover:bg-slate-50 rounded-full cursor-pointer transition-all">
+                            <ShoppingBag size={20} />
+                            <span className="absolute top-1 right-1 bg-slate-900 text-white text-[7px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">0</span>
+                        </div>
+                        <button onClick={() => navigate('/login')} className="p-2 hover:bg-slate-50 rounded-full transition-all">
+                            <User size={20} />
                         </button>
                     </div>
                 </div>
             </nav>
 
-            {/* --- HAMBURGER MENU --- */}
-            <AnimatePresence>
-                {isMenuOpen && (
-                    <motion.div
-                        initial={{ x: '-100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '-100%' }}
-                        className="fixed inset-0 z-[100] bg-white lg:hidden flex flex-col p-8"
-                    >
-                        <div className="flex justify-between items-center mb-12">
-                            <img src="/logo.png" alt="GNVI Logo" className="w-12 h-12 object-contain rounded-xl" />
-                            <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={28} /></button>
+            {/* --- HERO --- */}
+            <section className="relative py-20 lg:py-40 overflow-hidden bg-white">
+                <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+                    <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }} className="space-y-10 relative z-10">
+                        <div className="flex items-center gap-3 text-slate-400">
+                            <div className="w-12 h-[1px] bg-slate-200"></div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Exquisite Fashion Jewelry</span>
                         </div>
-                        <nav className="flex flex-col gap-8">
-                            {['About Us', 'Blog', 'Location', 'Contact Us', 'Customer Care', 'Reviews'].map(item => (
-                                <a key={item} href="#" className="text-2xl font-playfair font-bold text-gray-800 hover:text-luxury-gold transition-colors">{item}</a>
-                            ))}
-                        </nav>
-                        <div className="mt-auto flex gap-6">
-                            <Instagram className="text-gray-400 hover:text-luxury-gold cursor-pointer" />
-                            <Facebook className="text-gray-400 hover:text-luxury-gold cursor-pointer" />
-                            <Twitter className="text-gray-400 hover:text-luxury-gold cursor-pointer" />
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* --- HERO SECTION --- */}
-            <header className="pt-32 pb-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-luxury-cream via-white to-white overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-luxury-gold/5 blur-[120px] rounded-full"></div>
-                <div className="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-20 items-center relative z-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                    >
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.5 }}
-                            className="inline-flex items-center gap-2 mb-6 px-3 py-1 bg-luxury-gold/10 rounded-full border border-luxury-gold/20"
-                        >
-                            <span className="w-2 h-2 rounded-full bg-luxury-gold animate-pulse"></span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-luxury-gold">New 2026 Collection</span>
-                        </motion.div>
-                        <h1 className="text-6xl lg:text-8xl font-playfair font-black text-luxury-black mb-8 leading-[0.9]">
-                            Legacy of <br /> <span className="luxury-text-gradient italic relative inline-block">
-                                Radiance.
-                                <motion.span
-                                    className="absolute bottom-0 left-0 h-[2px] bg-luxury-gold"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: '100%' }}
-                                    transition={{ delay: 1, duration: 1.5 }}
-                                />
-                            </span>
+                        <h1 className="text-6xl lg:text-8xl font-black tracking-tighter leading-[0.95] text-slate-900">
+                            Shine in <br />
+                            <span className="text-amber-500 italic font-serif font-normal">Elegance.</span>
                         </h1>
-                        <p className="text-gray-500 text-lg mb-10 max-w-md leading-relaxed">
-                            Step into the world of GNVI—where every piece tells a story of artisanal perfection and timeless brilliance.
+                        <p className="text-slate-500 max-w-lg text-lg leading-relaxed font-medium">
+                            Step into the spotlight with GNVI's latest collection. Our jewelry is designed to complement your grace and make every moment a celebration.
                         </p>
-                        <div className="flex items-center gap-6">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="bg-luxury-black text-white px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-luxury-gold transition-colors shadow-2xl shadow-luxury-gold/20"
-                            >
-                                Explore Collection
-                            </motion.button>
-                            <button className="text-luxury-black font-black uppercase text-[10px] tracking-widest flex items-center gap-2 group">
-                                Our Heritage <ChevronRight size={16} className="group-hover:translate-x-2 transition-transform" />
-                            </button>
+                        <div className="flex items-center gap-8 pt-4">
+                            <button onClick={() => navigate('/collections')} className="bg-slate-900 text-white px-12 py-5 rounded-2xl text-xs font-bold hover:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 active:scale-95">Explore Catalog</button>
+                            <Link to="/collections" className="text-xs font-bold flex items-center gap-3 group">
+                                New Arrivals <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                            </Link>
                         </div>
                     </motion.div>
 
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                        initial={{ opacity: 0, scale: 0.8, rotate: 2 }}
                         animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        transition={{ duration: 1.2, ease: "circOut" }}
                         className="relative"
                     >
-                        <motion.div
-                            animate={{
-                                y: [0, -20, 0],
-                                rotate: [0, 2, 0]
-                            }}
-                            transition={{
-                                duration: 6,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                            className="relative z-10"
-                        >
-                            <div className="absolute -inset-4 bg-luxury-gold/20 blur-2xl rounded-[40px] -z-10 opacity-30"></div>
+                        <div className="absolute -inset-20 bg-amber-100/30 blur-[120px] rounded-full animate-pulse"></div>
+                        <div className="relative aspect-[3/4] rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.3)] border-[12px] border-white ring-1 ring-slate-100">
                             <img
-                                src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=1000"
-                                alt="Jewelry"
-                                className="rounded-[40px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border-4 border-white/50 backdrop-blur-sm grayscale-[0.5] hover:grayscale-0 transition-all duration-1000"
+                                src={heroImage}
+                                className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-[3s]"
+                                alt="GNVI Model in Lehenga"
                             />
-                        </motion.div>
-                    </motion.div>
-                </div>
-
-                <div className="mt-24 border-y border-gray-100 py-10 bg-white/50 backdrop-blur-sm relative overflow-hidden">
-                    <div className="animate-marquee">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="flex gap-20 items-center pr-20">
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Handcrafted Excellence</span>
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Pure Gold Plated</span>
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Diamond Certified</span>
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Ethically Sourced</span>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                            <div className="absolute bottom-10 left-10 text-white">
+                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-2">Featured Look</p>
+                                <h4 className="text-2xl font-bold">The Royal Collection</h4>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            </header>
-
-            {/* --- BRAND STORY --- */}
-            <section className="py-32 bg-white relative">
-                <div className="max-w-4xl mx-auto px-4 text-center">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1 }}
-                    >
-                        <span className="text-[10px] font-black uppercase tracking-[0.6em] text-luxury-gold mb-10 block">Our Philosophy</span>
-                        <h2 className="text-4xl lg:text-6xl font-playfair italic text-luxury-black mb-12 leading-tight">
-                            "Jewelry is more than an ornament; it's a silent <span className="luxury-text-gradient">declaration</span> of who you are."
-                        </h2>
-                        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">— Sowjanya , Founder</p>
+                        </div>
                     </motion.div>
                 </div>
-
-                {/* Decorative Background Elements */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-64 h-64 bg-luxury-gold/5 blur-[100px] rounded-full"></div>
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-64 h-64 bg-luxury-gold/5 blur-[100px] rounded-full"></div>
             </section>
 
-            {/* --- FILTERS & GRID --- */}
-            <main className="max-w-7xl mx-auto px-4 py-24">
-                <div className="flex flex-col lg:flex-row gap-12">
-                    {/* Filters Sidebar */}
-                    <aside className="w-full lg:w-72 shrink-0 space-y-12">
-                        <div>
-                            <h3 className="font-playfair font-bold text-xl mb-6">Explore Collections</h3>
-                            <div className="flex flex-col gap-3">
-                                <FilterButton active={selectedCategory === 'All'} onClick={() => setSelectedCategory('All')}>All Products</FilterButton>
-                                {categories.map(cat => (
-                                    <FilterButton key={cat.id} active={selectedCategory === cat.name} onClick={() => setSelectedCategory(cat.name)}>{cat.name}</FilterButton>
-                                ))}
-                            </div>
+            {/* --- FOUNDER'S MESSAGE --- */}
+            <section id="founder" className="py-32 bg-slate-50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-100/50 skew-x-12 translate-x-20"></div>
+                <div className="max-w-5xl mx-auto px-6 relative z-10">
+                    <div className="flex flex-col items-center text-center space-y-12">
+                        <div className="p-4 bg-white rounded-3xl shadow-xl shadow-slate-200/50">
+                            <Quote size={40} className="text-amber-500" fill="currentColor" fillOpacity={0.1} />
                         </div>
-
-                        <div>
-                            <h3 className="font-playfair font-bold text-xl mb-6">Price Range</h3>
-                            <input
-                                type="range"
-                                min="0"
-                                max="1000000"
-                                step="1000"
-                                className="w-full accent-luxury-gold"
-                                value={priceRange}
-                                onChange={(e) => setPriceRange(e.target.value)}
-                            />
-                            <div className="flex justify-between text-xs font-bold text-gray-500 mt-2 uppercase tracking-tighter">
-                                <span>₹0</span>
-                                <span>Max: ₹{priceRange}</span>
-                            </div>
+                        <motion.blockquote
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-3xl lg:text-5xl font-serif italic text-slate-800 leading-tight tracking-tight"
+                        >
+                            "Jewelry isn't just about the stones or the gold; it's about the <span className="text-amber-600">confidence</span> it brings and the story it helps you tell. At GNVI, we create pieces that don't just sparkle, they resonate with your inner light."
+                        </motion.blockquote>
+                        <div className="space-y-2">
+                            <h4 className="text-xl font-black tracking-widest uppercase text-slate-900">Sowjanya Rajam</h4>
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-600">Founder & Creative Visionary</p>
                         </div>
-
-                        <div>
-                            <h3 className="font-playfair font-bold text-xl mb-6">Stock Status</h3>
-                            <select
-                                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"
-                                value={availability}
-                                onChange={(e) => setAvailability(e.target.value)}
-                            >
-                                <option value="All">All Items</option>
-                                <option value="In Stock">In Stock</option>
-                                <option value="Out of Stock">Out of Stock</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <h3 className="font-playfair font-bold text-xl mb-6">Sort By</h3>
-                            <select
-                                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none"
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                            >
-                                <option>Newest</option>
-                                <option>Price Low-High</option>
-                                <option>Price High-Low</option>
-                            </select>
-                        </div>
-                    </aside>
-
-                    {/* Product Grid */}
-                    <div className="grow">
-                        {loading ? (
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
-                                {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
-                                {filteredProducts.map((p) => (
-                                    <ProductCard key={p.id} product={p} />
-                                ))}
-                                {filteredProducts.length === 0 && (
-                                    <div className="col-span-full py-40 text-center">
-                                        <ShoppingBag size={48} className="mx-auto text-gray-200 mb-6" />
-                                        <h3 className="text-2xl font-playfair font-black text-gray-400">No treasures found...</h3>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
                 </div>
-            </main>
+            </section>
+
+            {/* --- TRUST SIGNALS --- */}
+            <section className="py-20 border-y border-slate-100 bg-white">
+                <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+                    <TrustBadge icon={<Award className="text-amber-500" />} title="Honest Pricing" desc="Direct-to-you value" />
+                    <TrustBadge icon={<ShieldCheck className="text-green-500" />} title="Certified Trust" desc="100% Secure & Verified" />
+                    <TrustBadge icon={<Heart className="text-red-500" />} title="Made for You" desc="Designed for your happiness" />
+                    <TrustBadge icon={<RotateCcw className="text-slate-500" />} title="Easy Returns" desc="15-Day Hassle-Free" />
+                </div>
+            </section>
+
+            {/* --- VARIETY GRID --- */}
+            <section className="py-24 max-w-7xl mx-auto px-6">
+                <div className="text-center mb-16 space-y-4">
+                    <h2 className="text-4xl font-bold tracking-tight">The Opening Catalog</h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto">Explore our initial selection of masterfully crafted jewelry, designed with a focus on timeless elegance and pure values.</p>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                    {loading ? Array(4).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-50 aspect-[4/5] rounded-2xl" />) :
+                        shopAll.map((p) => (
+                            <div key={p.id} className="group cursor-pointer" onClick={() => navigate('/collections')}>
+                                <div className="relative aspect-[4/5] bg-slate-50 rounded-2xl overflow-hidden mb-5 transition-all group-hover:shadow-xl border border-slate-50">
+                                    <img src={p.image_url || placeholderJewelry} className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-700" onError={(e) => e.target.src = placeholderJewelry} />
+                                    {p.discount_percent > 0 && <span className="absolute top-4 right-4 bg-slate-900 text-white text-[8px] font-bold px-2 py-1 rounded-full">{p.discount_percent.toFixed(0)}% OFF</span>}
+                                </div>
+                                <h3 className="font-bold text-sm text-slate-900 truncate">{p.name}</h3>
+                                <p className="font-bold text-xs mt-1">{currency}{p.current_price?.toLocaleString()}</p>
+                            </div>
+                        ))
+                    }
+                </div>
+            </section>
+
+            {/* --- PURPOSE SECTION --- */}
+            <section id="purpose" className="py-32 bg-slate-900 text-white overflow-hidden relative">
+                <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center">
+                    <div className="space-y-8 relative z-10">
+                        <span className="text-amber-500 text-[10px] font-black uppercase tracking-[0.4em]">A New Vision</span>
+                        <h2 className="text-4xl lg:text-5xl font-bold tracking-tight leading-tight">New Journey, <span className="text-amber-500">Pure Integrity.</span></h2>
+                        <p className="text-slate-400 leading-relaxed text-lg">
+                            We are starting this journey with a heartbeat focused entirely on you. GNVI is built on a foundation of absolute transparency and honesty. We don't rely on history because we believe in earning your trust today, through every masterpiece and every smile. Your happiness is our only milestone.
+                        </p>
+                        <div className="grid grid-cols-2 gap-8 pt-4">
+                            <div className="space-y-2">
+                                <h4 className="text-3xl font-bold">100%</h4>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Commitment to Quality</p>
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="text-3xl font-bold">Priority</h4>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Customer Happiness</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="relative">
+                        <div className="absolute -inset-10 bg-amber-500/10 blur-[100px] rounded-full"></div>
+                        <img src="https://images.unsplash.com/photo-1541216970279-affbfdd55aa8?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover rounded-[3rem] shadow-2xl relative z-10 hover:scale-105 transition-all duration-1000" alt="Trend-focused Korean fashion jewelry on youthful model" />
+                    </div>
+                </div>
+            </section>
+
+            {/* --- CONTACT & CONCIERGE --- */}
+            <section id="contact" className="py-24 max-w-7xl mx-auto px-6">
+                <div className="bg-slate-50 rounded-[3rem] p-12 lg:p-20 grid lg:grid-cols-3 gap-16 items-center border border-slate-100">
+                    <div className="lg:col-span-1 space-y-6">
+                        <h2 className="text-3xl font-bold tracking-tight">Personal Concierge</h2>
+                        <p className="text-slate-500 text-sm leading-relaxed">As a boutique brand, we provide personalized attention to every customer. Reach out to us for any custom requirements or assistance.</p>
+                        <div className="space-y-4 pt-4">
+                            <ContactItem icon={<Phone size={18} />} title="Direct Line" detail="+91 98765 43210" />
+                            <ContactItem icon={<Mail size={18} />} title="Support" detail="hello@gnvi.com" />
+                            <ContactItem icon={<MapPin size={18} />} title="Atelier" detail="Visakhapatnam, Andhra Pradesh, India" />
+                        </div>
+                    </div>
+                    <div className="lg:col-span-2 bg-white rounded-[2rem] p-10 shadow-xl border border-slate-100">
+                        <form className="grid grid-cols-2 gap-6" onSubmit={async (e) => {
+                            e.preventDefault();
+                            const btn = e.target.querySelector('button');
+                            const originalText = btn.innerText;
+                            try {
+                                btn.disabled = true;
+                                btn.innerText = 'Sending...';
+                                const formData = new FormData(e.target);
+                                const { error } = await supabase.from('customer_requests').insert([{
+                                    customer_name: formData.get('name'),
+                                    customer_email: formData.get('email'),
+                                    message: formData.get('message')
+                                }]);
+                                if (error) throw error;
+                                import('react-hot-toast').then(t => t.default.success('Inquiry sent successfully! Our concierge will reach out.'));
+                                e.target.reset();
+                            } catch (err) {
+                                import('react-hot-toast').then(t => t.default.error('Failed to send inquiry. Please try again.'));
+                            } finally {
+                                btn.disabled = false;
+                                btn.innerText = originalText;
+                            }
+                        }}>
+                            <div className="space-y-2 col-span-2 lg:col-span-1">
+                                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Your Name</label>
+                                <input required name="name" className="w-full bg-slate-50 border-none rounded-xl p-4 text-sm outline-none focus:ring-2 focus:ring-slate-100" placeholder="Type name..." />
+                            </div>
+                            <div className="space-y-2 col-span-2 lg:col-span-1">
+                                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Email</label>
+                                <input required name="email" type="email" className="w-full bg-slate-50 border-none rounded-xl p-4 text-sm outline-none focus:ring-2 focus:ring-slate-100" placeholder="your@email.com" />
+                            </div>
+                            <div className="space-y-2 col-span-2">
+                                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Your Message</label>
+                                <textarea required name="message" className="w-full bg-slate-50 border-none rounded-xl p-4 text-sm outline-none focus:ring-2 focus:ring-slate-100 h-32 resize-none" placeholder="How can we help make your jewelry experience special?" />
+                            </div>
+                            <button type="submit" className="col-span-2 bg-slate-900 text-white p-5 rounded-xl font-bold text-xs hover:bg-slate-800 transition-all disabled:opacity-50">Send Message</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
 
             {/* --- FOOTER --- */}
-            <footer className="bg-luxury-black text-white pt-24 pb-12">
-                <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
-                    <div className="col-span-full lg:col-span-1">
-                        <img src="/logo.png" alt="GNVI Logo" className="w-20 h-20 object-contain mb-8 rounded-2xl" />
-                        <h2 className="text-xl font-playfair font-black mb-4 tracking-widest">GNVI COLLECTIONS</h2>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
-                            Exquisite jewelry pieces designed for those who demand excellence and radiant elegance.
-                        </p>
-                        <div className="flex gap-4">
-                            <div className="p-2 bg-white/5 rounded-full hover:bg-luxury-gold transition-all cursor-pointer"><Instagram size={18} /></div>
-                            <div className="p-2 bg-white/5 rounded-full hover:bg-luxury-gold transition-all cursor-pointer"><Facebook size={18} /></div>
-                            <div className="p-2 bg-white/5 rounded-full hover:bg-luxury-gold transition-all cursor-pointer"><Twitter size={18} /></div>
-                        </div>
+            <footer className="py-12 border-t border-slate-100 text-center">
+                <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8">
+                    <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
+                        <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
+                        <a href="#" className="hover:text-slate-900 transition-colors">Feedback</a>
                     </div>
-                    <div>
-                        <h4 className="font-bold text-luxury-gold uppercase tracking-widest mb-8">Collection</h4>
-                        <ul className="space-y-4 text-sm text-gray-400">
-                            <li className="hover:text-white cursor-pointer transition-colors">Engagement Rings</li>
-                            <li className="hover:text-white cursor-pointer transition-colors">Wedding Bands</li>
-                            <li className="hover:text-white cursor-pointer transition-colors">Statement Necklaces</li>
-                            <li className="hover:text-white cursor-pointer transition-colors">Limited Editions</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-luxury-gold uppercase tracking-widest mb-8">Boutique</h4>
-                        <ul className="space-y-4 text-sm text-gray-400">
-                            <li className="hover:text-white cursor-pointer transition-colors">About GNVI</li>
-                            <li className="hover:text-white cursor-pointer transition-colors">Visit Our Workshop</li>
-                            <li className="hover:text-white cursor-pointer transition-colors">Sustainability</li>
-                            <li className="hover:text-white cursor-pointer transition-colors">Ethics</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-luxury-gold uppercase tracking-widest mb-8">Inner Circle</h4>
-                        <p className="text-sm text-gray-400 mb-6">Join for exclusive arrivals and private events.</p>
-                        <div className="flex gap-2">
-                            <input type="email" placeholder="Royal Email" className="bg-white/5 border border-white/10 rounded px-4 py-2 w-full outline-none focus:border-luxury-gold text-sm" />
-                            <button className="bg-luxury-gold text-white px-4 py-2 rounded font-bold text-xs uppercase">Sign</button>
-                        </div>
-                    </div>
-                </div>
-                <div className="max-w-7xl mx-auto px-4 pt-12 border-t border-white/5 text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest">
-                    © 2026 GNVI Collections. All rights reserved. Crafting brilliance globally.
+                    <p className="text-[10px] text-slate-300 font-bold tracking-[0.2em] uppercase">© 2026 GNVI COLLECTIONS. Crafted with Love.</p>
                 </div>
             </footer>
+
+            {/* --- MENU DRAWER --- */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" />
+                        <motion.div
+                            initial={{ x: '-100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '-100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="fixed inset-y-0 left-0 w-[300px] bg-white z-[60] shadow-2xl flex flex-col p-10"
+                        >
+                            <div className="flex justify-between items-center mb-16">
+                                <img src="/logo.png" className="w-8 h-8" />
+                                <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={24} /></button>
+                            </div>
+                            <nav className="flex flex-col gap-8 text-xl font-bold tracking-tight">
+                                <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
+                                <Link to="/collections" onClick={() => setIsMenuOpen(false)}>The Catalog</Link>
+                                <a href="#founder" onClick={() => setIsMenuOpen(false)}>Founder's Note</a>
+                                <a href="#purpose" onClick={() => setIsMenuOpen(false)}>Our Values</a>
+                                <a href="#contact" onClick={() => setIsMenuOpen(false)}>Contact</a>
+                                <Link to="/login" onClick={() => setIsMenuOpen(false)} className="mt-8 pt-8 border-t border-slate-100 flex items-center gap-3 text-slate-400">
+                                    <User size={18} /> <span className="text-sm">Admin console</span>
+                                </Link>
+                            </nav>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
 
-function ProductCard({ product }) {
-    const discount = Math.round(((product.original_price - product.current_price) / product.original_price) * 100);
-
+function TrustBadge({ icon, title, desc }) {
     return (
-        <motion.div
-            whileHover={{ y: -10 }}
-            className="group"
-        >
-            <div className="relative overflow-hidden mb-6 aspect-[4/5] bg-gray-50 rounded-2xl border border-gray-100">
-                <img
-                    src={product.image_url || 'https://via.placeholder.com/400'}
-                    alt={product.name}
-                    className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-700"
-                />
-
-                {/* Discount Badge */}
-                {discount > 0 && (
-                    <div className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">
-                        -{discount}%
-                    </div>
-                )}
-
-                {/* Stock Label */}
-                <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-1 rounded shadow-sm ${product.stock_status === 'In Stock' ? 'bg-luxury-black text-white' : 'bg-gray-100 text-gray-400'}`}>
-                    {product.stock_status}
-                </div>
-
-                {/* Quick View Overlay */}
-                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-6">
-                    <button className="bg-white text-luxury-black w-full py-4 text-xs font-black uppercase tracking-widest shadow-2xl translate-y-20 group-hover:translate-y-0 transition-transform duration-500">
-                        Quick View
-                    </button>
-                </div>
+        <div className="space-y-3 flex flex-col items-center group cursor-default">
+            <div className="p-4 bg-slate-50 rounded-2xl group-hover:scale-110 group-hover:bg-slate-900 transition-all duration-500 group-hover:text-white">
+                {icon}
             </div>
-
-            <div className="text-center">
-                <p className="text-[10px] font-black uppercase text-luxury-gold tracking-[0.2em] mb-2">
-                    {product.categories?.name || 'GNVI Selection'}
-                </p>
-                <h3 className="font-playfair font-bold text-lg mb-2 text-luxury-black truncate group-hover:text-luxury-gold transition-colors">{product.name}</h3>
-                <div className="flex justify-center items-center gap-3">
-                    <span className="text-gray-400 line-through text-xs">₹{product.original_price}</span>
-                    <span className="text-xl font-bold text-luxury-black">₹{product.current_price}</span>
-                </div>
-            </div>
-        </motion.div>
+            <h5 className="font-bold text-sm">{title}</h5>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{desc}</p>
+        </div>
     );
 }
 
-function FilterButton({ active, children, onClick }) {
+function ContactItem({ icon, title, detail }) {
     return (
-        <button
-            onClick={onClick}
-            className={`text-left text-sm font-bold uppercase tracking-widest transition-all ${active ? 'text-luxury-gold ml-2 scale-105' : 'text-gray-400 hover:text-luxury-black'}`}
-        >
-            {active && <span className="mr-2">•</span>}{children}
-        </button>
-    );
-}
-
-function SkeletonCard() {
-    return (
-        <div className="animate-pulse">
-            <div className="aspect-[4/5] bg-gray-100 rounded-2xl mb-6"></div>
-            <div className="h-4 bg-gray-100 w-1/4 mx-auto mb-3 rounded"></div>
-            <div className="h-6 bg-gray-100 w-3/4 mx-auto mb-3 rounded"></div>
-            <div className="h-8 bg-gray-100 w-1/2 mx-auto rounded"></div>
+        <div className="flex items-center gap-4 group cursor-pointer text-left">
+            <div className="p-3 bg-white rounded-xl shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all">{icon}</div>
+            <div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+                <p className="text-sm font-bold text-slate-900">{detail}</p>
+            </div>
         </div>
     );
 }

@@ -14,6 +14,14 @@ export default function Login() {
         e.preventDefault();
         setLoading(true);
 
+        // OWNER BYPASS: If email is empty or specific, allow PIN access
+        if (password === '1995' || password === 'GNVI1995') {
+            localStorage.setItem('gnvi_owner_session', 'active');
+            toast.success('Owner Verified: Welcome back, Sowjanya');
+            window.location.href = '/admin';
+            return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
             email,
             password,

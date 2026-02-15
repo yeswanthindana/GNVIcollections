@@ -2,11 +2,14 @@
 
 @theme {
   --color-luxury-gold: #D4AF37;
-  --color-luxury-cream: #F9F6F0;
-  --color-luxury-black: #1A1A1A;
+  --color-luxury-cream: #FDF9F3;
+  --color-luxury-black: #0F0F0F;
+  --color-midnight: #1A1A1A;
+  --color-pearl: #F5F5F5;
 
-  --font-playfair: "Playfair Display", serif;
-  --font-inter: "Inter", sans-serif;
+  --font-display: "Playfair Display", serif;
+  --font-sans: "Outfit", sans-serif;
+  --font-serif: "EB Garamond", serif;
 }
 
 @layer base {
@@ -15,52 +18,59 @@
   }
 
   body {
-    @apply font-inter bg-white;
+    @apply font-sans bg-white text-luxury-black;
     scroll-behavior: smooth;
   }
 }
 
 @layer components {
-  .luxury-text-gradient {
+  .midnight-gradient {
+    background: linear-gradient(135deg, #0F0F0F 0%, #1A1A1A 100%);
+  }
+
+  .gold-text-gradient {
     background: linear-gradient(to right, #D4AF37, #FDE68A, #D4AF37);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-}
 
-@layer utilities {
-  .animate-marquee {
-    animation: marquee 30s linear infinite;
-    display: flex;
-    width: max-content;
-  }
-}
-
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(-50%);
+  .classy-glass {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20;
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #FFFFFF;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #D4AF37;
-  border-radius: 4px;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #B8860B;
+  background: #0F0F0F;
+}
+
+/* Delighter animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-classy-in {
+  animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
