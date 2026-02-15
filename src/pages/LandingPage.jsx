@@ -161,9 +161,8 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* --- FOUNDER'S MESSAGE --- */}
             <section id="founder" className="py-32 bg-slate-50 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-100/50 skew-x-12 translate-x-20"></div>
+                <div className="hidden lg:block absolute top-0 right-0 w-1/3 h-full bg-slate-100/50 skew-x-12 translate-x-20"></div>
                 <div className="max-w-5xl mx-auto px-6 relative z-10">
                     <div className="flex flex-col items-center text-center space-y-12">
                         <div className="p-4 bg-white rounded-3xl shadow-xl shadow-slate-200/50">

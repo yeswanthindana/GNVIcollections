@@ -67,8 +67,12 @@ export default function Navbar({ storeName = 'GNVI', children, isFixed = false }
                                 </button>
                             </div>
                             <nav className="flex flex-col gap-8 text-xl font-bold tracking-tight">
-                                <Link to="/" onClick={() => setIsMenuOpen(false)} className="hover:text-slate-500 transition-colors">Home</Link>
-                                <Link to="/collections" onClick={() => setIsMenuOpen(false)} className="hover:text-slate-500 transition-colors">The Catalog</Link>
+                                <Link to="/" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">Home</Link>
+                                <Link to="/collections" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">The Catalog</Link>
+                                <a href="/#purpose" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">Our Values</a>
+                                <a href="/#founder" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">Founder's Note</a>
+                                <a href="/#contact" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">Contact</a>
+                                
                                 <div className="mt-8 pt-8 border-t border-slate-100 flex items-center gap-3 text-slate-400">
                                     <User size={18} />
                                     <Link to="/login" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-slate-900">Admin Console</Link>
