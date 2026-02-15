@@ -4,13 +4,18 @@
 -- 1. Create product_history table for price/status changes
 create table if not exists product_history (
   id uuid default gen_random_uuid() primary key,
-  product_id uuid references products(id) on delete cascade,
+  product_id uuid references products(id) on delete set null,
   product_name text,
-  change_type text check (change_type in ('Price Change', 'Status Change', 'Name Change', 'Category Change', 'SKU Change', 'Creation', 'Update')),
+  change_type text,
   old_value text,
   new_value text,
   changed_at timestamptz default now()
 );
+
+-- Fix for "violates check constraint" error 23514
+alter table product_history drop constraint if exists product_history_change_type_check;
+alter table product_history add constraint product_history_change_type_check 
+check (change_type in ('Price Change', 'Status Change', 'Name Change', 'Category Change', 'SKU Change', 'Creation', 'Update', 'Deletion'));
 
 -- 2. Create customer_requests table
 create table if not exists customer_requests (
@@ -32,6 +37,13 @@ begin
     insert into product_history (product_id, product_name, change_type, old_value, new_value)
     values (new.id, new.name, 'Creation', null, 'Product added to inventory');
     return new;
+  end if;
+
+  -- Track Deletion
+  if (TG_OP = 'DELETE') then
+    insert into product_history (product_id, product_name, change_type, old_value, new_value)
+    values (old.id, old.name, 'Deletion', old.name, 'Product removed from collection');
+    return old;
   end if;
 
   -- Track Price Change
@@ -81,5 +93,11 @@ create trigger on_product_update
 drop trigger if exists on_product_insert on products;
 create trigger on_product_insert
   after insert on products
+  for each row
+  execute function track_product_changes();
+
+drop trigger if exists on_product_delete on products;
+create trigger on_product_delete
+  before delete on products
   for each row
   execute function track_product_changes();

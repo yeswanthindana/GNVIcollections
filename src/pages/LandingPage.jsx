@@ -14,6 +14,12 @@ export default function LandingPage() {
     const [loading, setLoading] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [currency, setCurrency] = useState('₹');
+    const [storeInfo, setStoreInfo] = useState({
+        storeName: 'GNVI Collections',
+        supportEmail: 'hello@gnvi.com',
+        phone: '+91 98765 43210',
+        address: 'Visakhapatnam, Andhra Pradesh, India'
+    });
 
     const navigate = useNavigate();
 
@@ -24,6 +30,12 @@ export default function LandingPage() {
         if (saved) {
             const settings = JSON.parse(saved);
             if (settings.currency) setCurrency(settings.currency);
+            setStoreInfo({
+                storeName: settings.storeName || 'GNVI Collections',
+                supportEmail: settings.supportEmail || 'hello@gnvi.com',
+                phone: settings.phone || '+91 98765 43210',
+                address: settings.address || 'Visakhapatnam, Andhra Pradesh, India'
+            });
         }
     }, []);
 
@@ -95,8 +107,8 @@ export default function LandingPage() {
                             <Menu size={22} />
                         </button>
                         <Link to="/" className="flex items-center gap-3">
-                            <img src="/logo.png" alt="GNVI Logo" className="w-9 h-9 object-contain" />
-                            <h1 className="text-xl font-bold tracking-tight">GNVI</h1>
+                            <img src="/logo.png" alt={`${storeInfo.storeName} Logo`} className="w-9 h-9 object-contain" />
+                            <h1 className="text-xl font-bold tracking-tight">{storeInfo.storeName.split(' ')[0]}</h1>
                         </Link>
                     </div>
 
@@ -256,9 +268,9 @@ export default function LandingPage() {
                         <h2 className="text-3xl font-bold tracking-tight">Personal Concierge</h2>
                         <p className="text-slate-500 text-sm leading-relaxed">As a boutique brand, we provide personalized attention to every customer. Reach out to us for any custom requirements or assistance.</p>
                         <div className="space-y-4 pt-4">
-                            <ContactItem icon={<Phone size={18} />} title="Direct Line" detail="+91 98765 43210" />
-                            <ContactItem icon={<Mail size={18} />} title="Support" detail="hello@gnvi.com" />
-                            <ContactItem icon={<MapPin size={18} />} title="Atelier" detail="Visakhapatnam, Andhra Pradesh, India" />
+                            <ContactItem icon={<Phone size={18} />} title="Direct Line" detail={storeInfo.phone} />
+                            <ContactItem icon={<Mail size={18} />} title="Support" detail={storeInfo.supportEmail} />
+                            <ContactItem icon={<MapPin size={18} />} title="Atelier" detail={storeInfo.address} />
                         </div>
                     </div>
                     <div className="lg:col-span-2 bg-white rounded-[2rem] p-10 shadow-xl border border-slate-100">
@@ -311,7 +323,7 @@ export default function LandingPage() {
                         <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
                         <a href="#" className="hover:text-slate-900 transition-colors">Feedback</a>
                     </div>
-                    <p className="text-[10px] text-slate-300 font-bold tracking-[0.2em] uppercase">© 2026 GNVI COLLECTIONS. Crafted with Love.</p>
+                    <p className="text-[10px] text-slate-300 font-bold tracking-[0.2em] uppercase">© 2026 {storeInfo.storeName.toUpperCase()}. Crafted with Love.</p>
                 </div>
             </footer>
 

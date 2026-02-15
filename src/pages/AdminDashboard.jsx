@@ -143,6 +143,45 @@ export default function AdminDashboard() {
         });
     };
 
+    const handleDeleteProduct = async (product) => {
+        if (!window.confirm(`Are you certain you wish to remove "${product.name}" from the collection? This action is permanent.`)) return;
+
+        const deletePromise = async () => {
+            // 1. Delete image from storage if it exists and is internal
+            if (product.image_url && product.image_url.includes('supabase.co')) {
+                try {
+                    const path = product.image_url.split('products/').pop();
+                    await supabase.storage.from('products').remove([`products/${path}`]);
+                } catch (e) { console.error("Storage delete failed", e); }
+            }
+
+            // 2. Delete product from DB (Trigger will handle history)
+            const { error } = await supabase.from('products').delete().eq('id', product.id);
+            if (error) throw error;
+            fetchData();
+        };
+
+        toast.promise(deletePromise(), {
+            loading: 'Removing masterpiece...',
+            success: 'Product successfully removed from collection',
+            error: (err) => `Failed to remove product: ${err.message}`
+        });
+    };
+
+    const handleResolveRequest = async (id) => {
+        const promise = async () => {
+            const { error } = await supabase.from('customer_requests').update({ status: 'Resolved' }).eq('id', id);
+            if (error) throw error;
+            fetchData();
+        };
+
+        toast.promise(promise(), {
+            loading: 'Updating...',
+            success: 'Inquiry resolved and archived',
+            error: 'Failed to update'
+        });
+    };
+
     const stats = {
         total: products.length,
         value: products.reduce((acc, p) => acc + Number(p.current_price), 0),
@@ -250,9 +289,14 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-6 text-right">
-                                                    <button onClick={() => { setEditingProduct(p); setFormData(p); setShowProductModal(true); }} className="p-3 bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white rounded-xl transition-all">
-                                                        <Edit size={16} />
-                                                    </button>
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={() => { setEditingProduct(p); setFormData(p); setShowProductModal(true); }} className="p-3 bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white rounded-xl transition-all" title="Edit Masterpiece">
+                                                            <Edit size={16} />
+                                                        </button>
+                                                        <button onClick={() => handleDeleteProduct(p)} className="p-3 bg-slate-50 text-slate-400 hover:bg-red-500 hover:text-white rounded-xl transition-all" title="Remove Permanently">
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -283,8 +327,14 @@ export default function AdminDashboard() {
                                                 </div>
                                             </div>
                                             <div className="flex flex-col gap-2 w-full md:w-auto shrink-0">
-                                                <button className="bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">Reply via Email</button>
-                                                <button className="bg-slate-50 text-slate-400 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-slate-900 transition-all">Mark as Resolved</button>
+                                                <a href={`mailto:${req.customer_email}?subject=Regarding your inquiry to GNVI Collections`} className="bg-slate-900 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all text-center flex items-center justify-center gap-2">
+                                                    <Mail size={14} /> Reply
+                                                </a>
+                                                {req.status !== 'Resolved' && (
+                                                    <button onClick={() => handleResolveRequest(req.id)} className="bg-slate-50 text-slate-400 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-green-600 hover:bg-green-50 transition-all flex items-center justify-center gap-2">
+                                                        <CheckCircle2 size={14} /> Resolve
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

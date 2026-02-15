@@ -15,6 +15,7 @@ export default function Collections() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [currency, setCurrency] = useState('₹');
+    const [storeName, setStoreName] = useState('GNVI Collections');
 
     // Filters
     const [selectedCategory, setSelectedCategory] = useState('All');
@@ -30,6 +31,7 @@ export default function Collections() {
         if (saved) {
             const settings = JSON.parse(saved);
             if (settings.currency) setCurrency(settings.currency);
+            if (settings.storeName) setStoreName(settings.storeName);
         }
     }, []);
 
@@ -95,8 +97,8 @@ export default function Collections() {
                             <Menu size={22} />
                         </button>
                         <Link to="/" className="flex items-center gap-3">
-                            <img src="/logo.png" alt="GNVI Logo" className="w-9 h-9 object-contain" />
-                            <h1 className="text-xl font-bold tracking-tight">GNVI</h1>
+                            <img src="/logo.png" alt={`${storeName} Logo`} className="w-9 h-9 object-contain" />
+                            <h1 className="text-xl font-bold tracking-tight">{storeName.split(' ')[0]}</h1>
                         </Link>
                     </div>
 
