@@ -19,7 +19,7 @@ export default function Navbar({ storeName = 'GNVI', children, isFixed = false }
                         </button>
                         <Link to="/" className="flex items-center gap-3">
                             <img src="/logo.png" alt={`${storeName} Logo`} className="w-9 h-9 object-contain" />
-                            <h1 className="text-xl font-bold tracking-tight">{storeName.split(' ')[0]}</h1>
+                            <h1 className="text-xl font-bold tracking-tight">{(storeName || 'GNVI').split(' ')[0]}</h1>
                         </Link>
                     </div>
 
@@ -72,7 +72,7 @@ export default function Navbar({ storeName = 'GNVI', children, isFixed = false }
                                 <a href="/#purpose" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">Our Values</a>
                                 <a href="/#founder" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">Founder's Note</a>
                                 <a href="/#contact" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-500 transition-colors">Contact</a>
-                                
+
                                 <div className="mt-8 pt-8 border-t border-slate-100 flex items-center gap-3 text-slate-400">
                                     <User size={18} />
                                     <Link to="/login" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-slate-900">Admin Console</Link>

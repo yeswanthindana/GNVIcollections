@@ -1,7 +1,8 @@
+import React, { useState, useEffect } from 'react';
 import {
     Search, Instagram,
     Facebook, Twitter, ChevronDown, Filter, Sliders, ChevronRight,
-    Sparkles, Star, ArrowRight, Eye, Percent, X
+    Sparkles, Star, ArrowRight, Eye, Percent, X, AlertCircle
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -28,6 +29,8 @@ export default function Collections() {
     const { cartCount, setIsCartOpen, addToCart } = useCart();
     const navigate = useNavigate();
 
+    const [error, setError] = useState(null);
+
     useEffect(() => {
         fetchData();
         window.scrollTo(0, 0);
@@ -41,47 +44,51 @@ export default function Collections() {
 
     async function fetchData() {
         setLoading(true);
+        setError(null);
         try {
-            const { data: catData } = await supabase.from('categories').select('*');
-            if (catData) setCategories(catData);
+            // 1. Fetch Categories
+            const { data: catData, error: catErr } = await supabase.from('categories').select('*');
+            // If categories fail, we just continue with empty map
+            if (catErr) console.error('Category fetch error:', catErr);
 
             const categoryMap = (catData || []).reduce((acc, cat) => {
                 acc[cat.id] = cat.name;
                 return acc;
             }, {});
 
-            let { data: prodData, error: prodErr } = await supabase
+            if (catData) setCategories(catData);
+
+            // 2. Fetch Products (Simple Query)
+            const { data: prodData, error: prodErr } = await supabase
                 .from('products')
-                .select('*, categories:category_id(name)')
+                .select('*')
                 .order('created_at', { ascending: false });
 
-            if (prodErr) {
-                const { data: rawData, error: rawErr } = await supabase
-                    .from('products')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                if (!rawErr) {
-                    prodData = rawData.map(p => ({
-                        ...p,
-                        categories: { name: categoryMap[p.category_id] || 'Jewelry' }
-                    }));
-                }
-            }
+            if (prodErr) throw prodErr;
 
-            if (prodData) setProducts(prodData);
+            // 3. Map Categories Manually
+            if (prodData) {
+                const mappedProducts = prodData.map(p => ({
+                    ...p,
+                    categories: { name: categoryMap[p.category_id] || 'Jewelry' }
+                }));
+                setProducts(mappedProducts);
+            }
         } catch (err) {
             console.error('Error fetching data:', err);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     }
 
     const filteredProducts = products.filter(p => {
+        if (!p) return false; // Safety check
         const catName = p.categories?.name || 'Jewelry';
-        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             catName.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === 'All' || catName === selectedCategory;
-        const matchesPrice = p.current_price <= priceRange;
+        const matchesPrice = (p.current_price || 0) <= priceRange;
         return matchesSearch && matchesCategory && matchesPrice;
     }).sort((a, b) => {
         if (sortBy === 'Price Low-High') return a.current_price - b.current_price;
@@ -90,10 +97,12 @@ export default function Collections() {
     });
 
     const imageFallback = "https://images.unsplash.com/photo-1599643478123-dc9109059083?auto=format&fit=crop&q=80&w=600";
+    // 2026 Fix: Fallback to a known working jewelry URL if the primary one fails
+    // Using a more reliable Unsplash ID for jewelry
+    const safeFallback = "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&q=80&w=600";
 
     return (
         <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-slate-900 selection:text-white">
-            {/* --- NAVIGATION --- */}
             {/* --- NAVIGATION --- */}
             <Navbar storeName={storeName} isFixed={true}>
                 <div className="flex-1 max-w-sm relative group hidden md:block">
@@ -137,7 +146,6 @@ export default function Collections() {
 
             <main className="max-w-7xl mx-auto px-6 py-16">
                 <div className="flex flex-col lg:flex-row gap-16">
-                    {/* Filters Sidebar (Desktop) / Drawer (Mobile) */}
                     {/* Filters Sidebar (Desktop) / Drawer (Mobile) */}
                     <>
                         {/* Mobile Overlay */}
@@ -212,7 +220,14 @@ export default function Collections() {
                             <span>{filteredProducts.length} varieties listed</span>
                         </div>
 
-                        {loading ? (
+                        {error ? (
+                            <div className="py-20 text-center bg-red-50 rounded-[3rem] border border-red-100 text-red-500 p-8">
+                                <AlertCircle size={40} className="mx-auto mb-4 opacity-50" />
+                                <h3 className="text-lg font-bold mb-2">Unavailable</h3>
+                                <p className="text-xs mb-4">We are having trouble loading the collection.</p>
+                                <p className="font-mono text-[10px] bg-white p-2 rounded border border-red-100 inline-block">{error}</p>
+                            </div>
+                        ) : loading ? (
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
                                 {Array(6).fill(0).map((_, i) => <div key={i} className="animate-pulse space-y-4 shadow-sm p-4 bg-white rounded-2xl"><div className="aspect-[4/5] bg-slate-50 rounded-xl"></div><div className="h-4 bg-slate-50 rounded-full w-1/2"></div><div className="h-4 bg-slate-50 rounded-full w-full"></div></div>)}
                             </div>
@@ -222,13 +237,13 @@ export default function Collections() {
                                     <div key={p.id} className="group cursor-pointer">
                                         <div className="relative aspect-[4/5] bg-slate-50 rounded-2xl lg:rounded-[2rem] overflow-hidden mb-3 lg:mb-6 border border-slate-50 transition-all hover:shadow-2xl duration-700">
                                             <img
-                                                src={p.image_url || imageFallback}
+                                                src={p.image_url || safeFallback}
                                                 alt={p.name}
                                                 className="w-full h-full object-contain p-4 lg:p-8 group-hover:scale-110 transition-transform duration-[1.5s]"
-                                                onError={(e) => e.target.src = imageFallback}
+                                                onError={(e) => e.target.src = safeFallback}
                                             />
-                                            {p.discount_percent > 0 && (
-                                                <div className="absolute top-3 left-3 lg:top-6 lg:left-6 bg-slate-900 text-white text-[8px] lg:text-[9px] font-bold px-2 py-1 lg:px-3 lg:py-1.5 rounded-full">{p.discount_percent.toFixed(0)}% OFF</div>
+                                            {Number(p.discount_percent) > 0 && (
+                                                <div className="absolute top-3 left-3 lg:top-6 lg:left-6 bg-slate-900 text-white text-[8px] lg:text-[9px] font-bold px-2 py-1 lg:px-3 lg:py-1.5 rounded-full">{Number(p.discount_percent).toFixed(0)}% OFF</div>
                                             )}
 
                                             {/* Mobile: Always visible small Add button */}

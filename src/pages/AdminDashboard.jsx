@@ -236,16 +236,22 @@ export default function AdminDashboard() {
             const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
             if (error) {
                 console.error('Update Order Error:', error);
-                fetchData(); // Sync: revert optimistic update
-                throw new Error(error.message); // throw specifically for toast
+                // Sync: revert optimistic update on error
+                fetchData();
+
+                // Specific RLS error help
+                if (error.code === '42501' || error.message.toLowerCase().includes('policy')) {
+                    throw new Error('Permission Denied (RLS). Please run the FIX_DB_ISSUES.sql script in Supabase.');
+                }
+
+                throw new Error(error.message);
             }
-            // Success! Realtime listener will handle the rest.
         };
 
         toast.promise(promise(), {
-            loading: 'Syncing...',
+            loading: 'Syncing to Database...',
             success: `Order marked as ${newStatus}`,
-            error: (err) => `Sync Failed: ${err.message}`
+            error: (err) => `Failed: ${err.message}`
         });
     };
 
