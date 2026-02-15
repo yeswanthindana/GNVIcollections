@@ -161,8 +161,9 @@ export default function AdminDashboard() {
         <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
             {/* Sidebar */}
             <aside className="w-full lg:w-72 bg-luxury-black text-white p-8 flex flex-col sticky top-0 h-screen shrink-0">
-                <div className="mb-12">
-                    <h1 className="text-2xl font-playfair font-black tracking-tighter">GNVI ADMIN</h1>
+                <div className="mb-12 flex flex-col items-center lg:items-start">
+                    <img src="/logo.png" alt="GNVI Logo" className="w-16 h-16 object-contain mb-4 rounded-xl border border-white/10" />
+                    <h1 className="text-xl font-playfair font-black tracking-tighter">GNVI ADMIN</h1>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em] mt-1">Management Suite</p>
                 </div>
 

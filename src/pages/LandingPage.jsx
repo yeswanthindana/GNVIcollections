@@ -67,8 +67,11 @@ export default function LandingPage() {
                         <button onClick={() => setIsMenuOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-full transition-colors">
                             <Menu size={24} />
                         </button>
-                        <Link to="/" className="text-2xl font-playfair font-black tracking-tighter uppercase">
-                            GNVI<span className="text-luxury-gold">.</span>
+                        <Link to="/" className="flex items-center gap-3 group">
+                            <img src="/logo.png" alt="GNVI Logo" className="w-10 h-10 object-contain rounded-lg" />
+                            <span className="text-xl font-playfair font-black tracking-tighter uppercase group-hover:text-luxury-gold transition-colors">
+                                GNVI<span className="text-luxury-gold">.</span>
+                            </span>
                         </Link>
                     </div>
 
@@ -110,7 +113,7 @@ export default function LandingPage() {
                         className="fixed inset-0 z-[100] bg-white lg:hidden flex flex-col p-8"
                     >
                         <div className="flex justify-between items-center mb-12">
-                            <span className="text-2xl font-playfair font-black tracking-tight">GNVI.</span>
+                            <img src="/logo.png" alt="GNVI Logo" className="w-12 h-12 object-contain rounded-xl" />
                             <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={28} /></button>
                         </div>
                         <nav className="flex flex-col gap-8">
@@ -228,7 +231,7 @@ export default function LandingPage() {
                         <h2 className="text-4xl lg:text-6xl font-playfair italic text-luxury-black mb-12 leading-tight">
                             "Jewelry is more than an ornament; it's a silent <span className="luxury-text-gradient">declaration</span> of who you are."
                         </h2>
-                        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">— G.N. Varma, Founder</p>
+                        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">— Sowjanya , Founder</p>
                     </motion.div>
                 </div>
 
@@ -322,8 +325,9 @@ export default function LandingPage() {
             {/* --- FOOTER --- */}
             <footer className="bg-luxury-black text-white pt-24 pb-12">
                 <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
-                    <div>
-                        <h2 className="text-2xl font-playfair font-black mb-8">GNVI COLLECTIONS</h2>
+                    <div className="col-span-full lg:col-span-1">
+                        <img src="/logo.png" alt="GNVI Logo" className="w-20 h-20 object-contain mb-8 rounded-2xl" />
+                        <h2 className="text-xl font-playfair font-black mb-4 tracking-widest">GNVI COLLECTIONS</h2>
                         <p className="text-gray-400 text-sm leading-relaxed mb-8">
                             Exquisite jewelry pieces designed for those who demand excellence and radiant elegance.
                         </p>
