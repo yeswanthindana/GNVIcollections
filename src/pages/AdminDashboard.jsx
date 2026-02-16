@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState('products');
+    const [activeTab, setActiveTab] = useState('orders');
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [history, setHistory] = useState([]);
@@ -278,9 +278,9 @@ export default function AdminDashboard() {
                 </div>
 
                 <nav className="space-y-2 grow">
-                    <NavBtn active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<Package size={18} />} label="Inventory" />
                     <NavBtn active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} icon={<ShoppingBag size={18} />} label="Orders" count={orders.filter(o => o.status === 'Processing').length} />
                     <NavBtn active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} icon={<MessageSquare size={18} />} label="Customer Inquiries" count={requests.filter(r => r.status === 'Pending').length} />
+                    <NavBtn active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<Package size={18} />} label="Inventory" />
                     <NavBtn active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={18} />} label="Activity Log" />
                     <NavBtn active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<TrendingUp size={18} />} label="Analytics" />
                     <NavBtn active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings size={18} />} label="Store Profile" />

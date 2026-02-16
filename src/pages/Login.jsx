@@ -15,7 +15,7 @@ export default function Login() {
         setLoading(true);
 
         // OWNER BYPASS: If email is empty or specific, allow PIN access
-        if (password === '1995' || password === 'GNVI1995') {
+        if (password === '1995' || password === 'GNVI1995' || (email === 'rsowjanya2012@gmail.com' && password === 'Sowjanya@96')) {
             localStorage.setItem('gnvi_owner_session', 'active');
             toast.success('Owner Verified: Welcome back, Sowjanya');
             window.location.reload(); // Force App to pick up new localStorage
